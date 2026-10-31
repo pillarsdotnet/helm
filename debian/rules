@@ -1,0 +1,27 @@
+#! /usr/bin/make -f
+# Repack the upstream release binary. The version in debian/changelog names
+# the release to fetch; debian/upstream-sha256 holds its checksum, so a bump
+# is one commit touching those two files.
+include /usr/share/dpkg/pkg-info.mk
+
+TARBALL = helm-v$(DEB_VERSION_UPSTREAM)-linux-amd64.tar.gz
+URL = https://get.helm.sh/$(TARBALL)
+
+%:
+	dh $@
+
+override_dh_auto_build:
+	curl -fsSL -o $(TARBALL) $(URL)
+	grep ' $(TARBALL)$$' debian/upstream-sha256 | sha256sum -c -
+	tar -xzf $(TARBALL) --strip-components=1 linux-amd64/helm
+
+override_dh_auto_install:
+	install -D -m 0755 helm debian/helm/usr/bin/helm
+
+override_dh_auto_clean:
+	rm -f helm helm-v*-linux-amd64.tar.gz
+
+# Ship the binary as upstream released it: it is a static Go build whose
+# DWARF the strip and dwz passes mangle without making the package smaller
+# in any way that matters.
+override_dh_strip override_dh_dwz:

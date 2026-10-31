@@ -1,0 +1,26 @@
+Source: helm
+Section: admin
+Priority: optional
+Maintainer: Robert August Vincent II (Bob) <pillarsdotnet@gmail.com>
+Build-Depends:
+ ca-certificates,
+ curl,
+ debhelper-compat (= 13),
+Standards-Version: 4.7.0
+Rules-Requires-Root: no
+Homepage: https://helm.sh
+
+Package: helm
+Architecture: amd64
+Depends:
+ ${misc:Depends},
+Description: package manager for Kubernetes
+ Helm installs, upgrades and removes applications on a Kubernetes cluster
+ as versioned charts: templated bundles of manifests with their default
+ values, which a release tracks through upgrades and rollbacks.
+ .
+ This package repacks the upstream release binary, a static Go build: no
+ Ubuntu or Debian archive carries helm, and the vendor apt repository on
+ baltocdn.com serves a certificate chain apt cannot verify. debian/rules
+ downloads the release named in debian/changelog from get.helm.sh and
+ checks it against the sha256 recorded in debian/upstream-sha256.

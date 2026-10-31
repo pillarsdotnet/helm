@@ -1,0 +1,7 @@
+/helm
+/helm-v*-linux-amd64.tar.gz
+/debian/.debhelper/
+/debian/debhelper-build-stamp
+/debian/files
+/debian/helm/
+/debian/helm.substvars
