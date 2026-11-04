@@ -1,6 +1,13 @@
-helm (3.22.1-1) UNRELEASED; urgency=medium
+helm (4.3.1-1) UNRELEASED; urgency=medium
 
-  * Repack the upstream 3.22.1 release binary. The series version suffix is
+  * Repack the upstream 4.3.1 release binary. The series version suffix is
     added at build time by .forgejo/registry-upload and never committed.
+  * Upstream maintains 3.x and 4.x in parallel, 3.22.1 and 4.3.1 both being
+    current releases, so this is a deliberate move onto the 4.x line rather
+    than a routine catch-up. Helm 4 is a major release, so chart workflows
+    and scripts written against helm 3 are worth a look before the fleet
+    takes the upgrade.
+  * No advisories either way: trivy reports none against the Go modules
+    built into 3.22.1, and none against 4.3.1.
 
- -- Robert August Vincent II (Bob) <pillarsdotnet@gmail.com>  Fri, 30 Oct 2026 21:30:00 -0400
+ -- Robert August Vincent II (Bob) <pillarsdotnet@gmail.com>  Wed, 04 Nov 2026 10:35:00 -0500

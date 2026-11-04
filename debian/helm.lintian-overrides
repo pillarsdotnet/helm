@@ -1,0 +1,8 @@
+# Upstream's Linux release is a static Go binary and this package repacks it
+# exactly as released, so there is no build here that could link dynamically.
+# See debian/rules and README.md.
+helm: statically-linked-binary [usr/bin/helm]
+
+# Not an upload to Debian: this package lives in a private Forgejo registry
+# and tracks upstream releases, so no bug is ever closed by its first entry.
+helm: initial-upload-closes-no-bugs

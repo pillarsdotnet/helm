@@ -22,7 +22,7 @@ names from `get.helm.sh`, checks it against the `sha256` recorded in
 One commit, two files:
 
 ```sh
-v=3.22.2   # the new upstream version
+v=4.3.2   # the new upstream version
 curl -fsSL "https://get.helm.sh/helm-v$v-linux-amd64.tar.gz.sha256sum" \
   > debian/upstream-sha256
 dch -v "$v-1" -D UNRELEASED "Repack the upstream $v release binary."

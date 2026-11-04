@@ -1,5 +1,7 @@
 /helm
 /helm-v*-linux-amd64.tar.gz
+/debian/helm.1
+/debian/helm.1.filled
 /debian/.debhelper/
 /debian/debhelper-build-stamp
 /debian/files

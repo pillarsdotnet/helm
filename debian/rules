@@ -14,12 +14,26 @@ override_dh_auto_build:
 	curl -fsSL -o $(TARBALL) $(URL)
 	grep ' $(TARBALL)$$' debian/upstream-sha256 | sha256sum -c -
 	tar -xzf $(TARBALL) --strip-components=1 linux-amd64/helm
+# Upstream ships no manual page. help2man is given the version explicitly
+# because "helm version" prints a Go struct, which it would otherwise parse
+# into the page's title.
+	help2man --no-info --name 'package manager for Kubernetes' \
+		--version-string '$(DEB_VERSION_UPSTREAM)' ./helm > debian/helm.1
+# "helm --help" embeds an ASCII table of environment variables. Left as
+# filled text, groff cannot justify those lines and warns on every one
+# (lintian: groff-message), so the table is marked unfilled, which is how it
+# is meant to read anyway.
+	awk 'BEGIN { t = 0 } \
+	     /^\|/ { if (!t) { print ".nf"; t = 1 } print; next } \
+	     { if (t) { print ".fi"; t = 0 } print } \
+	     END { if (t) print ".fi" }' debian/helm.1 > debian/helm.1.filled
+	mv debian/helm.1.filled debian/helm.1
 
 override_dh_auto_install:
 	install -D -m 0755 helm debian/helm/usr/bin/helm
 
 override_dh_auto_clean:
-	rm -f helm helm-v*-linux-amd64.tar.gz
+	rm -f helm helm-v*-linux-amd64.tar.gz debian/helm.1 debian/helm.1.filled
 
 # Ship the binary as upstream released it: it is a static Go build whose
 # DWARF the strip and dwz passes mangle without making the package smaller
