@@ -1,5 +1,4 @@
 /helm
-/helm-v*-linux-amd64.tar.gz
 /debian/helm.1
 /debian/helm.1.filled
 /debian/.debhelper/
@@ -7,3 +6,6 @@
 /debian/files
 /debian/helm/
 /debian/helm.substvars
+/build-src/
+/debian/.gocache/
+/debian/.gobuild/

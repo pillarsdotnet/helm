@@ -1,24 +1,69 @@
 #! /usr/bin/make -f
-# Repack the upstream release binary. The version in debian/changelog names
-# the release to fetch; debian/upstream-sha256 holds its checksum, so a bump
-# is one commit touching those two files.
+# Build helm from upstream's source rather than repacking the release binary.
+#
+# Repacking was simpler, and it is what this package did until 4.3.2. The
+# reason it stopped: a release binary carries the Go toolchain and module set
+# upstream happened to build with, and those accumulate advisories at their
+# own pace. helm 4.3.1 as released carried five, 4.3.2 as released carries
+# one, and no amount of repacking clears them -- only a rebuild does. See
+# debian/changelog and README.md.
+#
+# Three things are pinned here, and all three are the point of the file:
+#   * the upstream tag (debian/changelog) and the commit it must resolve to
+#     (debian/upstream-commit);
+#   * the Go toolchain, through GOTOOLCHAIN, which the distribution's own go
+#     downloads and verifies against the checksum database;
+#   * the two modules whose released versions carry advisories.
 include /usr/share/dpkg/pkg-info.mk
 
-TARBALL = helm-v$(DEB_VERSION_UPSTREAM)-linux-amd64.tar.gz
-URL = https://get.helm.sh/$(TARBALL)
+V = $(DEB_VERSION_UPSTREAM)
+UPSTREAM_GIT = https://github.com/helm/helm.git
+UPSTREAM_COMMIT = $(shell grep -v '^#' debian/upstream-commit | tr -d '[:space:]')
+SRC = $(CURDIR)/build-src
+
+# Go 1.27.3, which upstream built 4.3.2 with, carries CVE-2026-97054 in
+# net/http (MaxBytesReader leaves the connection in a bad state). 1.27.4 is
+# the fix.
+GOTOOLCHAIN = go1.27.4
+
+# x/crypto through 0.58.0 still ships golang.org/x/crypto/openpgp, which
+# GO-2026-5932 flags as unmaintained and unsafe by design; 0.59.0 removed it.
+# x/net 0.61.0 is what 4.3.2 pins; 0.63.0 is current and carries nothing.
+GO_MODULE_PINS = golang.org/x/crypto@v0.59.0 golang.org/x/net@v0.63.0
+
+# The module and build caches live under debian/ so that a build leaves the
+# tree as it found it; see debian/clean.
+export GOPATH = $(CURDIR)/debian/.gocache
+export GOCACHE = $(CURDIR)/debian/.gobuild
+export GOFLAGS = -mod=mod
+export GOTOOLCHAIN
+export CGO_ENABLED = 0
+
+# version.metadata is empty for a release build, which is what upstream's own
+# Makefile does when it is building a tag. gitTreeState says "clean" because
+# the checkout is upstream's tag; the module bump above is recorded in
+# debian/changelog, which is where a package's delta belongs.
+LDFLAGS = -w -s \
+	-X helm.sh/helm/v4/internal/version.version=v$(V) \
+	-X helm.sh/helm/v4/internal/version.metadata= \
+	-X helm.sh/helm/v4/internal/version.gitCommit=$(UPSTREAM_COMMIT) \
+	-X helm.sh/helm/v4/internal/version.gitTreeState=clean
 
 %:
 	dh $@
 
 override_dh_auto_build:
-	curl -fsSL -o $(TARBALL) $(URL)
-	grep ' $(TARBALL)$$' debian/upstream-sha256 | sha256sum -c -
-	tar -xzf $(TARBALL) --strip-components=1 linux-amd64/helm
+	rm -rf $(SRC)
+	git clone --quiet --depth 1 --branch v$(V) $(UPSTREAM_GIT) $(SRC)
+	cd $(SRC) && test "$$(git rev-parse HEAD)" = "$(UPSTREAM_COMMIT)" \
+	  || { echo "v$(V) is not $(UPSTREAM_COMMIT); see debian/upstream-commit" >&2; exit 1; }
+	cd $(SRC) && go get $(GO_MODULE_PINS) && go mod tidy
+	cd $(SRC) && go build -trimpath -ldflags '$(LDFLAGS)' -o $(CURDIR)/helm ./cmd/helm
 # Upstream ships no manual page. help2man is given the version explicitly
 # because "helm version" prints a Go struct, which it would otherwise parse
 # into the page's title.
 	help2man --no-info --name 'package manager for Kubernetes' \
-		--version-string '$(DEB_VERSION_UPSTREAM)' ./helm > debian/helm.1
+		--version-string '$(V)' ./helm > debian/helm.1
 # "helm --help" embeds an ASCII table of environment variables. Left as
 # filled text, groff cannot justify those lines and warns on every one
 # (lintian: groff-message), so the table is marked unfilled, which is how it
@@ -29,13 +74,19 @@ override_dh_auto_build:
 	     END { if (t) print ".fi" }' debian/helm.1 > debian/helm.1.filled
 	mv debian/helm.1.filled debian/helm.1
 
+# Upstream's test suite needs a Kubernetes cluster for much of itself and is
+# not what this package is verifying; the build proving the pinned module set
+# still compiles is.
+override_dh_auto_test:
+
 override_dh_auto_install:
 	install -D -m 0755 helm debian/helm/usr/bin/helm
 
 override_dh_auto_clean:
-	rm -f helm helm-v*-linux-amd64.tar.gz debian/helm.1 debian/helm.1.filled
+	rm -f helm debian/helm.1 debian/helm.1.filled
+	chmod -R u+w debian/.gocache debian/.gobuild 2>/dev/null || true
+	rm -rf $(SRC) debian/.gocache debian/.gobuild
 
-# Ship the binary as upstream released it: it is a static Go build whose
-# DWARF the strip and dwz passes mangle without making the package smaller
-# in any way that matters.
+# Ship the binary as built: a static Go build whose DWARF the strip and dwz
+# passes mangle without making the package smaller in any way that matters.
 override_dh_strip override_dh_dwz:

@@ -1,0 +1,7 @@
+# The upstream commit that debian/changelog's version tag points at. The
+# build clones that tag and refuses to go on unless HEAD matches this, so a
+# retagged or moved release cannot slip in unnoticed.
+#
+# Read it from the tag:
+#   git ls-remote https://github.com/helm/helm.git refs/tags/v<version>^{}
+8346aaa55e7161f7c547212d0a87f01367976727
