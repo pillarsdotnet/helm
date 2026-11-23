@@ -28,11 +28,11 @@ built it happened to have. `trivy` reads both out of the binary, so the
 advisory count against a released `helm` only ever goes up between
 releases, and a repack inherits whatever upstream shipped:
 
-| binary | findings |
-| --- | --- |
-| 4.3.1 as released | 5 |
-| 4.3.2 as released | 1 |
-| 4.3.2 built here | 0 |
+| binary            | findings |
+| ----------------- | -------- |
+| 4.3.1 as released | 5        |
+| 4.3.2 as released | 1        |
+| 4.3.2 built here  | 0        |
 
 The one left in 4.3.2 as released is `GO-2026-5932`, which says
 `golang.org/x/crypto/openpgp` is unmaintained and unsafe by design.
